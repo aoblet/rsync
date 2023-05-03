@@ -472,6 +472,7 @@ has its own detailed description later in this manpage.
 --checksum-choice=STR    choose the checksum algorithm (aka --cc)
 --one-file-system, -x    don't cross filesystem boundaries
 --block-size=SIZE, -B    force a fixed checksum block-size
+--bufferio-size=SIZE,    specify buffer length in byte for in and out fs block size (default 128K)
 --rsh=COMMAND, -e        specify the remote shell to use
 --rsync-path=PROGRAM     specify the rsync to run on remote machine
 --existing               skip creating new files on receiver
@@ -2123,6 +2124,13 @@ expand it.
 
     Beginning in 3.2.3 the SIZE can be specified with a suffix as detailed in
     the [`--max-size`](#opt) option.  Older versions only accepted a byte count.
+
+0.  `--bufferio-size=SIZE`
+
+    This option overrides read and write filesystem block size.
+    By overriding rsync buffer io used durring transfer.
+    It mimics dd bs option.
+    Default value: 128K.
 
 0.  `--rsh=COMMAND`, `-e`
 
