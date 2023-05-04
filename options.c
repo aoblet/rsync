@@ -2773,6 +2773,8 @@ void server_options(char **args, int *argc_p)
 	}
 
         if (bufferio_size) {
+		if (asprintf(&arg, "--bufferio-size %d", (int)bufferio_size) < 0)
+			goto oom;
 		args[ac++] = arg;
 	}
 
