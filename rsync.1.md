@@ -474,6 +474,7 @@ has its own detailed description later in this manpage.
 --block-size=SIZE, -B    force a fixed checksum block-size
 --max-map-size           force mmap read block size (expressed in bytes, useful for fast storage, default 256K)
 --write-size             force write block size (expressed in bytes, default 32K)
+--io-buffer-size         force read and write buffer size (expressed in bytes, default 32K)
 --rsh=COMMAND, -e        specify the remote shell to use
 --rsync-path=PROGRAM     specify the rsync to run on remote machine
 --existing               skip creating new files on receiver
@@ -2142,6 +2143,12 @@ expand it.
 0.  `--write-size=SIZE`
 
     This option forces the buffer size when writing a file on the receiver side.
+
+    By default, 32K and expressed in Bytes.
+
+0.  `--io-buffer-size=SIZE`
+
+    This option forces the receiver / sender exchange io buffer size.
 
     By default, 32K and expressed in Bytes.
 

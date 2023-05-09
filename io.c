@@ -36,6 +36,7 @@
 
 extern int bwlimit;
 extern size_t bwlimit_writemax;
+extern int io_buffer_size;
 extern int io_timeout;
 extern int am_server;
 extern int am_sender;
@@ -1357,7 +1358,7 @@ BOOL io_start_buffering_out(int f_out)
 		return False;
 	}
 
-	alloc_xbuf(&iobuf.out, ROUND_UP_1024(IO_BUFFER_SIZE * 2));
+	alloc_xbuf(&iobuf.out, ROUND_UP_1024(io_buffer_size * 2));
 	iobuf.out_fd = f_out;
 
 	return True;
@@ -1376,7 +1377,7 @@ BOOL io_start_buffering_in(int f_in)
 		return False;
 	}
 
-	alloc_xbuf(&iobuf.in, ROUND_UP_1024(IO_BUFFER_SIZE));
+	alloc_xbuf(&iobuf.in, ROUND_UP_1024(io_buffer_size));
 	iobuf.in_fd = f_in;
 
 	return True;
@@ -2376,7 +2377,7 @@ void io_start_multiplex_out(int fd)
 		rprintf(FINFO, "[%s] io_start_multiplex_out(%d)\n", who_am_i(), fd);
 
 	if (!iobuf.msg.buf)
-		alloc_xbuf(&iobuf.msg, ROUND_UP_1024(IO_BUFFER_SIZE));
+		alloc_xbuf(&iobuf.msg, ROUND_UP_1024(io_buffer_size));
 
 	iobuf.out_empty_len = 4; /* See also OUT_MULTIPLEXED */
 	io_start_buffering_out(fd);
