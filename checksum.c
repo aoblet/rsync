@@ -41,6 +41,7 @@ extern int checksum_seed;
 extern int protocol_version;
 extern int proper_seed_order;
 extern const char *checksum_choice;
+extern int chunk_size;
 extern int max_map_size;
 
 #define NNI_BUILTIN (1<<0)
@@ -423,8 +424,8 @@ void file_checksum(const char *fname, const STRUCT_STAT *st_p, char *sum)
 
 		EVP_DigestInit_ex(evp, file_sum_evp_md, NULL);
 
-		for (i = 0; i + CHUNK_SIZE <= len; i += CHUNK_SIZE)
-			EVP_DigestUpdate(evp, (uchar *)map_ptr(buf, i, CHUNK_SIZE), CHUNK_SIZE);
+		for (i = 0; i + chunk_size <= len; i += chunk_size)
+			EVP_DigestUpdate(evp, (uchar *)map_ptr(buf, i, chunk_size), chunk_size);
 
 		remainder = (int32)(len - i);
 		if (remainder > 0)
@@ -442,8 +443,8 @@ void file_checksum(const char *fname, const STRUCT_STAT *st_p, char *sum)
 
 		XXH64_reset(state, 0);
 
-		for (i = 0; i + CHUNK_SIZE <= len; i += CHUNK_SIZE)
-			XXH64_update(state, (uchar *)map_ptr(buf, i, CHUNK_SIZE), CHUNK_SIZE);
+		for (i = 0; i + chunk_size <= len; i += chunk_size)
+			XXH64_update(state, (uchar *)map_ptr(buf, i, chunk_size), chunk_size);
 
 		remainder = (int32)(len - i);
 		if (remainder > 0)
@@ -461,8 +462,8 @@ void file_checksum(const char *fname, const STRUCT_STAT *st_p, char *sum)
 
 		XXH3_64bits_reset(state);
 
-		for (i = 0; i + CHUNK_SIZE <= len; i += CHUNK_SIZE)
-			XXH3_64bits_update(state, (uchar *)map_ptr(buf, i, CHUNK_SIZE), CHUNK_SIZE);
+		for (i = 0; i + chunk_size <= len; i += chunk_size)
+			XXH3_64bits_update(state, (uchar *)map_ptr(buf, i, chunk_size), chunk_size);
 
 		remainder = (int32)(len - i);
 		if (remainder > 0)
@@ -479,8 +480,8 @@ void file_checksum(const char *fname, const STRUCT_STAT *st_p, char *sum)
 
 		XXH3_128bits_reset(state);
 
-		for (i = 0; i + CHUNK_SIZE <= len; i += CHUNK_SIZE)
-			XXH3_128bits_update(state, (uchar *)map_ptr(buf, i, CHUNK_SIZE), CHUNK_SIZE);
+		for (i = 0; i + chunk_size <= len; i += chunk_size)
+			XXH3_128bits_update(state, (uchar *)map_ptr(buf, i, chunk_size), chunk_size);
 
 		remainder = (int32)(len - i);
 		if (remainder > 0)
@@ -497,8 +498,8 @@ void file_checksum(const char *fname, const STRUCT_STAT *st_p, char *sum)
 
 		md5_begin(&m5);
 
-		for (i = 0; i + CHUNK_SIZE <= len; i += CHUNK_SIZE)
-			md5_update(&m5, (uchar *)map_ptr(buf, i, CHUNK_SIZE), CHUNK_SIZE);
+		for (i = 0; i + chunk_size <= len; i += chunk_size)
+			md5_update(&m5, (uchar *)map_ptr(buf, i, chunk_size), chunk_size);
 
 		remainder = (int32)(len - i);
 		if (remainder > 0)

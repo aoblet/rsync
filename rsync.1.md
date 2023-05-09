@@ -474,6 +474,7 @@ has its own detailed description later in this manpage.
 --block-size=SIZE, -B    force a fixed checksum block-size
 --max-map-size           force mmap read block size (expressed in bytes, useful for fast storage, default 256K)
 --write-size             force write block size (expressed in bytes, default 32K)
+--chunk-size             force chunk size for processing compression and reception (expressed in bytes, default 32K)
 --io-buffer-size         force read and write buffer size (expressed in bytes, default 32K)
 --rsh=COMMAND, -e        specify the remote shell to use
 --rsync-path=PROGRAM     specify the rsync to run on remote machine
@@ -2139,6 +2140,12 @@ expand it.
     To use 4K read block size:
     >     --max-map-size 4194304
 
+
+0.  `--chunk-size=SIZE`
+
+    This option forces the chunk size use to perform checksum and data transmission.
+
+    By default, 32K and expressed in Bytes.
 
 0.  `--write-size=SIZE`
 

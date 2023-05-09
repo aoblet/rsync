@@ -69,6 +69,7 @@ extern OFF_T preallocated_len;
 
 extern struct name_num_item *xfer_sum_nni;
 extern int xfer_sum_len;
+extern int chunk_size;
 
 static struct bitbag *delayed_bits = NULL;
 static int phase = 0, redoing = 0;
@@ -289,11 +290,11 @@ static int receive_data(int f_in, char *fname_r, int fd_r, OFF_T size_r,
 		if (sum.remainder)
 			sum.flength -= sum.blength - sum.remainder;
 		if (append_mode == 2 && mapbuf) {
-			for (j = CHUNK_SIZE; j < sum.flength; j += CHUNK_SIZE) {
+			for (j = chunk_size; j < sum.flength; j += chunk_size) {
 				if (INFO_GTE(PROGRESS, 1))
 					show_progress(offset, total_size);
-				sum_update(map_ptr(mapbuf, offset, CHUNK_SIZE),
-					   CHUNK_SIZE);
+				sum_update(map_ptr(mapbuf, offset, chunk_size),
+					   chunk_size);
 				offset = j;
 			}
 			if (offset < sum.flength) {

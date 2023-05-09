@@ -34,6 +34,7 @@ extern int protocol_version;
 extern int module_id;
 extern int do_compression_level;
 extern char *skip_compress;
+extern int chunk_size;
 
 #ifndef Z_INSERT_ONLY
 #define Z_INSERT_ONLY Z_SYNC_FLUSH
@@ -285,7 +286,7 @@ static int32 simple_recv_token(int f, char **data)
 	int32 n;
 
 	if (!buf)
-		buf = new_array(char, CHUNK_SIZE);
+		buf = new_array(char, chunk_size);
 
 	if (residue == 0) {
 		int32 i = read_int(f);
@@ -295,7 +296,7 @@ static int32 simple_recv_token(int f, char **data)
 	}
 
 	*data = buf;
-	n = MIN(CHUNK_SIZE,residue);
+	n = MIN(chunk_size,residue);
 	residue -= n;
 	read_buf(f,buf,n);
 	return n;
@@ -307,7 +308,7 @@ static void simple_send_token(int f, int32 token, struct map_struct *buf, OFF_T 
 	if (n > 0) {
 		int32 len = 0;
 		while (len < n) {
-			int32 n1 = MIN(CHUNK_SIZE, n-len);
+			int32 n1 = MIN(chunk_size, n-len);
 			write_int(f, n1);
 			write_buf(f, map_ptr(buf, offset+len, n1), n1);
 			len += n1;
@@ -346,12 +347,10 @@ static z_stream tx_strm;
 static char *obuf;
 
 /* We want obuf to be able to hold both MAX_DATA_COUNT+2 bytes as well as
- * AVAIL_OUT_SIZE(CHUNK_SIZE) bytes, so make sure that it's large enough. */
-#if MAX_DATA_COUNT+2 > AVAIL_OUT_SIZE(CHUNK_SIZE)
-#define OBUF_SIZE	(MAX_DATA_COUNT+2)
-#else
-#define OBUF_SIZE	AVAIL_OUT_SIZE(CHUNK_SIZE)
-#endif
+ * AVAIL_OUT_SIZE(chunk_size) bytes, so make sure that it's large enough. */
+static int get_obuf_size() {
+    return MAX_DATA_COUNT+2 > AVAIL_OUT_SIZE(chunk_size) ? MAX_DATA_COUNT+2 : AVAIL_OUT_SIZE(chunk_size);
+}
 
 /* Send a deflated token */
 static void
@@ -372,7 +371,7 @@ send_deflated_token(int f, int32 token, struct map_struct *buf, OFF_T offset, in
 				rprintf(FERROR, "compression init failed\n");
 				exit_cleanup(RERR_PROTOCOL);
 			}
-			obuf = new_array(char, OBUF_SIZE);
+			obuf = new_array(char, get_obuf_size());
 			init_done = 1;
 		} else
 			deflateReset(&tx_strm);
@@ -409,7 +408,7 @@ send_deflated_token(int f, int32 token, struct map_struct *buf, OFF_T offset, in
 		do {
 			if (tx_strm.avail_in == 0 && nb != 0) {
 				/* give it some more input */
-				n = MIN(nb, CHUNK_SIZE);
+				n = MIN(nb, chunk_size);
 				tx_strm.next_in = (Bytef *)
 					map_ptr(buf, offset, n);
 				tx_strm.avail_in = n;
@@ -473,7 +472,7 @@ send_deflated_token(int f, int32 token, struct map_struct *buf, OFF_T offset, in
 			if (protocol_version >= 31) /* Newer protocols avoid a data-duplicating bug */
 				offset += n1;
 			tx_strm.next_out = (Bytef *) obuf;
-			tx_strm.avail_out = AVAIL_OUT_SIZE(CHUNK_SIZE);
+			tx_strm.avail_out = AVAIL_OUT_SIZE(chunk_size);
 			r = deflate(&tx_strm, Z_INSERT_ONLY);
 			if (r != Z_OK || tx_strm.avail_in != 0) {
 				rprintf(FERROR, "deflate on token returned %d (%d bytes left)\n",
@@ -516,7 +515,7 @@ static int32 recv_deflated_token(int f, char **data)
 					exit_cleanup(RERR_PROTOCOL);
 				}
 				cbuf = new_array(char, MAX_DATA_COUNT);
-				dbuf = new_array(char, AVAIL_OUT_SIZE(CHUNK_SIZE));
+				dbuf = new_array(char, AVAIL_OUT_SIZE(chunk_size));
 				init_done = 1;
 			} else {
 				inflateReset(&rx_strm);
@@ -544,9 +543,9 @@ static int32 recv_deflated_token(int f, char **data)
 				/* check previous inflated stuff ended correctly */
 				rx_strm.avail_in = 0;
 				rx_strm.next_out = (Bytef *)dbuf;
-				rx_strm.avail_out = AVAIL_OUT_SIZE(CHUNK_SIZE);
+				rx_strm.avail_out = AVAIL_OUT_SIZE(chunk_size);
 				r = inflate(&rx_strm, Z_SYNC_FLUSH);
-				n = AVAIL_OUT_SIZE(CHUNK_SIZE) - rx_strm.avail_out;
+				n = AVAIL_OUT_SIZE(chunk_size) - rx_strm.avail_out;
 				/*
 				 * Z_BUF_ERROR just means no progress was
 				 * made, i.e. the decompressor didn't have
@@ -600,9 +599,9 @@ static int32 recv_deflated_token(int f, char **data)
 
 		case r_inflating:
 			rx_strm.next_out = (Bytef *)dbuf;
-			rx_strm.avail_out = AVAIL_OUT_SIZE(CHUNK_SIZE);
+			rx_strm.avail_out = AVAIL_OUT_SIZE(chunk_size);
 			r = inflate(&rx_strm, Z_NO_FLUSH);
-			n = AVAIL_OUT_SIZE(CHUNK_SIZE) - rx_strm.avail_out;
+			n = AVAIL_OUT_SIZE(chunk_size) - rx_strm.avail_out;
 			if (r != Z_OK) {
 				rprintf(FERROR, "inflate returned %d (%d bytes)\n", r, n);
 				exit_cleanup(RERR_STREAMIO);
@@ -660,7 +659,7 @@ static void see_deflate_token(char *buf, int32 len)
 			}
 		}
 		rx_strm.next_out = (Bytef *)dbuf;
-		rx_strm.avail_out = AVAIL_OUT_SIZE(CHUNK_SIZE);
+		rx_strm.avail_out = AVAIL_OUT_SIZE(chunk_size);
 		r = inflate(&rx_strm, Z_SYNC_FLUSH);
 		if (r != Z_OK && r != Z_BUF_ERROR) {
 			rprintf(FERROR, "inflate (token) returned %d\n", r);
@@ -689,7 +688,7 @@ static void send_zstd_token(int f, int32 token, struct map_struct *buf, OFF_T of
 			exit_cleanup(RERR_PROTOCOL);
 		}
 
-		obuf = new_array(char, OBUF_SIZE);
+		obuf = new_array(char, get_obuf_size());
 
 		ZSTD_CCtx_setParameter(zstd_cctx, ZSTD_c_compressionLevel, do_compression_level);
 		zstd_out_buff.dst = obuf + 2;
@@ -883,7 +882,7 @@ static void
 send_compressed_token(int f, int32 token, struct map_struct *buf, OFF_T offset, int32 nb)
 {
 	static int init_done, flush_pending;
-	int size = MAX(LZ4_compressBound(CHUNK_SIZE), MAX_DATA_COUNT+2);
+	int size = MAX(LZ4_compressBound(chunk_size), MAX_DATA_COUNT+2);
 	int32 n, r;
 
 	if (last_token == -1) {
@@ -957,7 +956,7 @@ static int32 recv_compressed_token(int f, char **data)
 {
 	static int init_done;
 	int32 n, flag;
-	int size = MAX(LZ4_compressBound(CHUNK_SIZE), MAX_DATA_COUNT+2);
+	int size = MAX(LZ4_compressBound(chunk_size), MAX_DATA_COUNT+2);
 	static const char *next_in;
 	static int avail_in;
 	int avail_out;

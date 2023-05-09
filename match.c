@@ -27,6 +27,7 @@ extern int append_mode;
 
 extern struct name_num_item *xfer_sum_nni;
 extern int xfer_sum_len;
+extern int chunk_size;
 
 int updating_basis_file;
 char sender_file_sum[MAX_DIGEST_LEN];
@@ -122,8 +123,8 @@ static void matched(int f, struct sum_struct *s, struct map_struct *buf, OFF_T o
 		n += s->sums[i].len;
 	}
 
-	for (j = 0; j < n; j += CHUNK_SIZE) {
-		int32 n1 = MIN(CHUNK_SIZE, n - j);
+	for (j = 0; j < n; j += chunk_size) {
+		int32 n1 = MIN(chunk_size, n - j);
 		sum_update(map_ptr(buf, last_match + j, n1), n1);
 	}
 
@@ -333,7 +334,7 @@ static void hash_search(int f,struct sum_struct *s,
 		   match. The 3 reads are caused by the
 		   running match, the checksum update and the
 		   literal send. */
-		if (backup >= s->blength+CHUNK_SIZE && end-offset > CHUNK_SIZE)
+		if (backup >= s->blength+chunk_size && end-offset > chunk_size)
 			matched(f, s, buf, offset - s->blength, -2);
 	} while (++offset < end);
 
@@ -369,11 +370,11 @@ void match_sums(int f, struct sum_struct *s, struct map_struct *buf, OFF_T len)
 	if (append_mode > 0) {
 		if (append_mode == 2) {
 			OFF_T j = 0;
-			for (j = CHUNK_SIZE; j < s->flength; j += CHUNK_SIZE) {
+			for (j = chunk_size; j < s->flength; j += chunk_size) {
 				if (buf && INFO_GTE(PROGRESS, 1))
 					show_progress(last_match, buf->file_size);
-				sum_update(map_ptr(buf, last_match, CHUNK_SIZE),
-					   CHUNK_SIZE);
+				sum_update(map_ptr(buf, last_match, chunk_size),
+					   chunk_size);
 				last_match = j;
 			}
 			if (last_match < s->flength) {
@@ -400,7 +401,7 @@ void match_sums(int f, struct sum_struct *s, struct map_struct *buf, OFF_T len)
 	} else {
 		OFF_T j;
 		/* by doing this in pieces we avoid too many seeks */
-		for (j = last_match + CHUNK_SIZE; j < len; j += CHUNK_SIZE)
+		for (j = last_match + chunk_size; j < len; j += chunk_size)
 			matched(f, s, buf, j, -2);
 		matched(f, s, buf, len, -1);
 	}

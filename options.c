@@ -139,6 +139,7 @@ int32 block_size = 0;
 int max_map_size = 256*1024;
 int io_buffer_size = 32*1024;
 int write_size = 32*1024;
+int chunk_size = 32*1024;
 time_t stop_at_utime = 0;
 char *skip_compress = NULL;
 char *copy_as = NULL;
@@ -744,6 +745,7 @@ static struct poptOption long_options[] = {
   {"cc",               0,  POPT_ARG_STRING, &checksum_choice, 0, 0, 0 },
   {"block-size",      'B', POPT_ARG_STRING, 0, OPT_BLOCK_SIZE, 0, 0 },
   {"max-map-size",     0,  POPT_ARG_INT,    &max_map_size, 0, 0, 0 },
+  {"chunk-size",       0,  POPT_ARG_INT,    &chunk_size, 0, 0, 0 },
   {"write-size",       0,  POPT_ARG_INT,    &write_size, 0, 0, 0 },
   {"io-buffer-size",   0,  POPT_ARG_INT,    &io_buffer_size, 0, 0, 0 },
   {"compare-dest",     0,  POPT_ARG_STRING, 0, OPT_COMPARE_DEST, 0, 0 },
@@ -2795,6 +2797,12 @@ void server_options(char **args, int *argc_p)
 
     if (write_size) {
         if (asprintf(&arg, "--write-size=%d", write_size) < 0)
+            goto oom;
+        args[ac++] = arg;
+    }
+
+    if (chunk_size) {
+        if (asprintf(&arg, "--chunk-size=%d", chunk_size) < 0)
             goto oom;
         args[ac++] = arg;
     }
